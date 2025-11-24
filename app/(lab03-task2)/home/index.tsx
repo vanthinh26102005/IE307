@@ -39,7 +39,10 @@ export default function NotesHomeScreen() {
     };
 
     return (
-        <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView
+            contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}
+            bounces={false}
+        >
             <View style={styles.headerRow}>
                 <Text style={[styles.title, { color: colors.text, fontSize: fontSize + 6 }]}>
                     Note Keeper
@@ -74,6 +77,7 @@ export default function NotesHomeScreen() {
                                     {
                                         backgroundColor: colors.surface,
                                         borderColor: colors.border,
+                                        marginTop: 16,
                                     },
                                 ]}
                             >
@@ -87,14 +91,14 @@ export default function NotesHomeScreen() {
                                                 styles.noteTitle,
                                                 { color: colors.text, fontSize: fontSize + 2 },
                                             ]}
-                                            numberOfLines={1}
+                                            numberOfLines={2}
                                         >
                                             {note.title}
                                         </Text>
                                         {!!note.content && (
                                             <Text
                                                 style={[styles.noteBody, { color: colors.text, fontSize }]}
-                                                numberOfLines={2}
+                                                numberOfLines={3}
                                             >
                                                 {note.content}
                                             </Text>
@@ -104,7 +108,7 @@ export default function NotesHomeScreen() {
                                 <TouchableOpacity
                                     onPress={() => handleDelete(note.id)}
                                     style={styles.deleteBtn}
-                                    hitSlop={8}
+                                    hitSlop={12}
                                 >
                                     <Ionicons name="trash-outline" size={20} color={colors.text} />
                                 </TouchableOpacity>
@@ -146,24 +150,28 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         width: "100%",
-        gap: 10,
+        gap: 12,
     },
     noteCard: {
         borderWidth: 1,
-        borderRadius: 12,
-        padding: 12,
+        borderRadius: 16,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
         flexDirection: "row",
         alignItems: "center",
+        minHeight: 90,
     },
     noteContent: {
         flex: 1,
         gap: 6,
+        paddingRight: 10,
     },
     noteTitle: {
         fontWeight: "700",
     },
     noteBody: {
         lineHeight: 20,
+        paddingTop: 16,
     },
     deleteBtn: {
         paddingLeft: 12,
