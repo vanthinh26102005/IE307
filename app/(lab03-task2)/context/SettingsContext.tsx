@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { getSettings, initDb, saveSettings } from "../lib/db";
 
 type SettingsContextValue = {
     darkMode: boolean;
@@ -22,6 +23,33 @@ type SettingsProviderProps = {
 export function SettingsProvider({ children }: SettingsProviderProps) {
     const [darkMode, setDarkMode] = useState(false);
     const [fontSize, setFontSize] = useState(16);
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                await initDb();
+                const stored = await getSettings();
+                setDarkMode(stored.darkMode);
+                setFontSize(stored.fontSize);
+            } catch (err) {
+                console.error("Load settings error", err);
+            } finally {
+                setLoaded(true);
+            }
+        })();
+    }, []);
+
+    useEffect(() => {
+        if (!loaded) return;
+        (async () => {
+            try {
+                await saveSettings({ darkMode, fontSize });
+            } catch (err) {
+                console.error("Save settings error", err);
+            }
+        })();
+    }, [darkMode, fontSize, loaded]);
 
     const colors = useMemo(
         () => ({

@@ -1,14 +1,9 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect } from "react";
 import { SettingsProvider, useSettings } from "./context/SettingsContext";
-import { initDb } from "./lib/db";
 
 function TabNavigator() {
     const { colors, darkMode } = useSettings();
-    useEffect(() => {
-        initDb();
-    }, []);
     return (
         <Tabs
             initialRouteName="home"
