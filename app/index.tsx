@@ -24,7 +24,7 @@ export default function Index() {
             </Link>
 
             {/* LAB03 (Nested Navigation + Local Storage) */}
-            <Link href="/(lab01)/(auth)/login" asChild>
+            <Link href="/(lab03-task1)/(auth)/login" asChild>
                 <TouchableOpacity style={styles.btn}>
                     <Text style={styles.btnText}>LAB03 (Nested Navigation)</Text>
                 </TouchableOpacity>

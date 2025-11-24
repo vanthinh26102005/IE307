@@ -26,7 +26,7 @@ export default function LoginScreen() {
             Alert.alert("Login Failed", result.message || "Invalid credentials");
         } else {
             // if login success, navigate to main 
-            router.replace("/(lab01)/home");
+            router.replace("/(lab03-task1)/home");
         }
     };
 
@@ -92,7 +92,7 @@ export default function LoginScreen() {
 
             <Text style={styles.bottomText}>
                 Don&apos;t have an account?{" "}
-                <Link href="/(lab01)/(auth)/register" style={styles.linkText}>
+                <Link href="/(lab03-task1)/(auth)/register" style={styles.linkText}>
                     Sign up here!
                 </Link>
             </Text>

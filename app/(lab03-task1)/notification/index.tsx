@@ -7,7 +7,7 @@ export default function NotificationsScreen() {
         <View style={styles.container}>
             {/* The title for this screen is set in the Drawer _layout */}
             <Text style={styles.title}>Notifications Screen</Text>
-            <Link href="/(lab01)/notification-details" asChild>
+            <Link href="/(lab03-task1)/notification-details" asChild>
                 <Button title="Go to Details" />
             </Link>
         </View>

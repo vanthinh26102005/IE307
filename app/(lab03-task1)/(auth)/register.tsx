@@ -75,7 +75,7 @@ export default function RegisterScreen() {
 
             <Text style={styles.bottomText}>
                 Already have an account?{" "}
-                <Link href="/(lab01)/(auth)/login" style={styles.linkText}>
+                <Link href="/(lab03-task1)/(auth)/login" style={styles.linkText}>
                     Login now!
                 </Link>
             </Text>

@@ -6,7 +6,7 @@ export default function HomeScreen() {
     return (
         <View style={styles.container}> 
             <Text style={styles.title}> Home Screen</Text>
-            <Link href="/(lab01)/home-details" asChild>
+            <Link href="/(lab03-task1)/home-details" asChild>
                 <Button title="Go to Details" />
             </Link>
         </View>

@@ -5,7 +5,7 @@ import { Drawer } from 'expo-router/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 
-export default function Lab01Layout() {
+export default function Lab03Task1Layout() {
     const { isAuthenticated } = useAuth();
     const segments = useSegments();
     const router = useRouter();
@@ -15,9 +15,9 @@ export default function Lab01Layout() {
         const inAuthGroup = (segments as string[]).includes('(auth)');
 
         if (!isAuthenticated && !inAuthGroup) {
-            router.replace('/(lab01)/(auth)/login');
+            router.replace('/(lab03-task1)/(auth)/login');
         } else if (isAuthenticated && inAuthGroup) {
-            router.replace('/(lab01)/home');
+            router.replace('/(lab03-task1)/home');
         }
     }, [isAuthenticated, router, segments]);
 
