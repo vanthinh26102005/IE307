@@ -1,0 +1,32 @@
+export const posts = [
+    {
+        id: 1,
+        username: "Ngô Văn Thịnh - 23521500",
+        avatar: require("@/app/screens/assets/user1.png"),
+        contentText: "Exploring ancient ruins in a distant land. 🌍✈️",
+        contentImage: require("@/app/screens/assets/post1.png"),
+        likes: 1033,
+        comments: 79,
+        shares: 15,
+    },
+    {
+        id: 2,
+        username: "Vladimir Putin XVII",
+        avatar: require("@/app/screens/assets/user2.png"),
+        contentText: "Create a vibrant painting inspired by nature. 🎨🌿",
+        contentImage: require("@/app/screens/assets/post2.png"),
+        likes: 4170,
+        comments: 663,
+        shares: 58,
+    },
+    {
+        id: 3,
+        username: "Bill Gate Linux",
+        avatar: require("@/app/screens/assets/user3.png"),
+        contentText: "Admiring the beauty of the mountains. 🏔️🌄",
+        contentImage: require("@/app/screens/assets/post3.png"),
+        likes: 602,
+        comments: 114,
+        shares: 73,
+    },
+];
