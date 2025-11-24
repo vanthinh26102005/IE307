@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 
 // mock email  data
-const STUDENT_EMAIL = "23521500@gm.uit.edu.vn";
-const STUDENT_PASSWORD = "ngovanthinh";
+// const STUDENT_EMAIL = "23521500@gm.uit.edu.vn";
+// const STUDENT_PASSWORD = "ngovanthinh";
+const STUDENT_EMAIL = "1";
+const STUDENT_PASSWORD = "1";
 
 // contex value type definition
 type AuthContextType = {
