@@ -9,7 +9,6 @@ export default function AccountScreen() {
 
     const handleLogout = () => {
         signOut();
-        // The root layout will automatically redirect to the login screen
     };
 
     return (
