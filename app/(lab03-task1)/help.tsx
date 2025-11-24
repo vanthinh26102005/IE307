@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from "react-native";
 export default function HelpScreen() {
     return (
         <View style={styles.container}>
-            <Text style={styles.text}>❓ Help & Support</Text>
+            <Text style={styles.text}> Help & Support</Text>
         </View>
     );
 }

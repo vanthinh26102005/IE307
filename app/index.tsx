@@ -29,6 +29,12 @@ export default function Index() {
                     <Text style={styles.btnText}>LAB03 (Nested Navigation)</Text>
                 </TouchableOpacity>
             </Link>
+
+            <Link href="/(lab03-task2)/home" asChild>
+                <TouchableOpacity style={styles.btn}>
+                    <Text style={styles.btnText}>LAB03 Task 2 (Local Storage)</Text>
+                </TouchableOpacity>
+            </Link>
         </View>
     );
 }
