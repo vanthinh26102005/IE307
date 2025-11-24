@@ -1,7 +1,7 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Link, Redirect } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { Link, } from "expo-router";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Index() {
     const { isAuthenticated } = useAuth();
@@ -20,6 +20,13 @@ export default function Index() {
             <Link href={isAuthenticated ? "/(main)/home" : "/(auth)/login"} asChild>
                 <TouchableOpacity style={styles.btn}>
                     <Text style={styles.btnText}>LAB02 ( 3 - Authentication)</Text>
+                </TouchableOpacity>
+            </Link>
+
+            {/* LAB03 (Nested Navigation + Local Storage) */}
+            <Link href="/(lab03-task1)/(auth)/login" asChild>
+                <TouchableOpacity style={styles.btn}>
+                    <Text style={styles.btnText}>LAB03 (Nested Navigation)</Text>
                 </TouchableOpacity>
             </Link>
         </View>
