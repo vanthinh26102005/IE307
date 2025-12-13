@@ -5,6 +5,7 @@ import {
     Dimensions,
     FlatList,
     Image,
+    Pressable,
     RefreshControl,
     StyleSheet,
     Text,
@@ -15,7 +16,8 @@ import { useRouter } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { fetchProducts, Product } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
+import { createCart, fetchProducts, fetchUserCarts, Product, updateCart } from "@/services/api";
 
 const { width } = Dimensions.get("window");
 
@@ -39,9 +41,11 @@ const BANNERS = [
 
 export default function HomeScreen() {
     const router = useRouter();
+    const { userId } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [addingId, setAddingId] = useState<number | null>(null);
 
     const loadProducts = async () => {
         try {
@@ -62,6 +66,46 @@ export default function HomeScreen() {
     const onRefresh = () => {
         setRefreshing(true);
         loadProducts();
+    };
+
+    const handleAddToCart = async (product: Product) => {
+        if (!userId) {
+            Alert.alert("Login required", "Please log in to add items to cart.", [
+                { text: "Cancel" },
+                { text: "Go to login", onPress: () => router.replace("/(lab04)/(auth)/login") },
+            ]);
+            return;
+        }
+        setAddingId(product.id);
+        try {
+            const cartsResponse = await fetchUserCarts(userId);
+            const existingCart = cartsResponse.data[0];
+            if (existingCart) {
+                const updatedProducts = [...existingCart.products];
+                const index = updatedProducts.findIndex((p) => p.productId === product.id);
+                if (index >= 0) {
+                    updatedProducts[index] = { ...updatedProducts[index], quantity: updatedProducts[index].quantity + 1 };
+                } else {
+                    updatedProducts.push({ productId: product.id, quantity: 1 });
+                }
+                await updateCart(existingCart.id, {
+                    ...existingCart,
+                    date: new Date().toISOString(),
+                    products: updatedProducts,
+                });
+            } else {
+                await createCart({
+                    userId,
+                    date: new Date().toISOString(),
+                    products: [{ productId: product.id, quantity: 1 }],
+                });
+            }
+            Alert.alert("Success", "Product added to cart.");
+        } catch (error) {
+            Alert.alert("Error", "Unable to add to cart. Please try again.");
+        } finally {
+            setAddingId(null);
+        }
     };
 
     const renderProduct = ({ item }: { item: Product }) => (
@@ -86,6 +130,19 @@ export default function HomeScreen() {
                     <Text style={styles.rateText}>{item.rating?.rate?.toFixed(1) ?? "0.0"}</Text>
                 </View>
             </View>
+            <Pressable
+                style={styles.addBtn}
+                onPress={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart(item);
+                }}
+            >
+                {addingId === item.id ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                    <Ionicons name="add" size={18} color="#FFFFFF" />
+                )}
+            </Pressable>
         </TouchableOpacity>
     );
 
@@ -219,6 +276,22 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "700",
         color: "#2563EB",
+    },
+    addBtn: {
+        position: "absolute",
+        right: 10,
+        bottom: 10,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: "#2563EB",
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 3,
     },
     rateRow: {
         flexDirection: "row",

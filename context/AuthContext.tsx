@@ -79,12 +79,14 @@ export const AuthProvider = ({ children, enableRedirect = true }: AuthProviderPr
 
     useEffect(() => {
         const restoring = authRestoring;
-        if (!enableRedirect) return;
+        if (!enableRedirect || restoring) return;
         const inLab04 = segments?.[0] === "(lab04)";
-        if (!inLab04 || restoring) return;
-        if (authToken) {
+        if (!inLab04) return;
+
+        const isAuthStack = segments?.[1] === "(auth)";
+        if (authToken && isAuthStack) {
             router.replace("/(lab04)/(main)/home");
-        } else {
+        } else if (!authToken && !isAuthStack) {
             router.replace("/(lab04)/(auth)/login");
         }
     }, [segments, authToken, authRestoring, router, enableRedirect]);
