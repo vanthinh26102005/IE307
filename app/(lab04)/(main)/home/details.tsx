@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -23,6 +23,7 @@ import {
 
 export default function ProductDetailsScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { id } = useLocalSearchParams<{ id: string }>();
     const { userId } = useAuth();
 
@@ -36,6 +37,10 @@ export default function ProductDetailsScreen() {
             try {
                 const response = await fetchProductById(Number(id));
                 setProduct(response.data);
+                navigation.setOptions({
+                    title: response.data.title,
+                    headerBackTitleVisible: false,
+                });
             } catch (error) {
                 Alert.alert("Error", "Unable to load product.", [{ text: "OK", onPress: () => router.back() }]);
             } finally {
@@ -43,7 +48,15 @@ export default function ProductDetailsScreen() {
             }
         };
         loadProduct();
-    }, [id, router]);
+    }, [id, router, navigation]);
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            headerShown: true,
+            headerTitle: product ? product.title : "Details",
+            headerBackTitleVisible: false,
+        });
+    }, [navigation, product]);
 
     const handleAddToCart = async () => {
         if (!product) return;
