@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     FlatList,
     Image,
-    Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -12,7 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +26,9 @@ import {
     updateCart,
 } from "@/services/api";
 
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = (width - 16 * 2 - 12) / 2;
+
 const CATEGORY_ICONS: Record<string, string> = {
     electronics: "laptop-outline",
     jewelery: "sparkles-outline",
@@ -35,6 +38,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export default function CategoriesScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { userId } = useAuth();
     const [categories, setCategories] = useState<string[]>(["all"]);
     const [selected, setSelected] = useState<string>("all");
@@ -70,6 +74,12 @@ export default function CategoriesScreen() {
         loadCategories();
         loadProducts("all");
     }, []);
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            title: "Categories",
+        });
+    }, [navigation]);
 
     useEffect(() => {
         loadProducts(selected);
@@ -135,26 +145,27 @@ export default function CategoriesScreen() {
             <Text style={styles.productTitle} numberOfLines={2}>
                 {item.title}
             </Text>
-            <View style={styles.priceRow}>
+            <View style={styles.cardFooter}>
                 <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-                <View style={styles.rateRow}>
-                    <Ionicons name="star" color="#D57C2C" size={14} />
-                    <Text style={styles.rateText}>{item.rating?.rate?.toFixed(1) ?? "0.0"}</Text>
-                </View>
+                <TouchableOpacity
+                    style={styles.addBtn}
+                    onPress={(e) => {
+                        e.stopPropagation();
+                        handleAdd(item);
+                    }}
+                >
+                    {addingId === item.id ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                        <Ionicons name="add" size={18} color="#FFFFFF" />
+                    )}
+                </TouchableOpacity>
             </View>
-            <Pressable
-                style={styles.addBtn}
-                onPress={(e) => {
-                    e.stopPropagation();
-                    handleAdd(item);
-                }}
-            >
-                {addingId === item.id ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                    <Ionicons name="add" size={18} color="#FFFFFF" />
-                )}
-            </Pressable>
+            <View style={styles.rateRow}>
+                <Ionicons name="star" color="#D57C2C" size={14} />
+                <Text style={styles.rateText}>{item.rating?.rate?.toFixed(1) ?? "0.0"}</Text>
+                <Text style={styles.rateCount}>({item.rating?.count ?? 0})</Text>
+            </View>
         </TouchableOpacity>
     );
 
@@ -169,7 +180,9 @@ export default function CategoriesScreen() {
                 activeOpacity={0.85}
             >
                 <Ionicons name={iconName as any} size={18} color={isActive ? "#FFFFFF" : "#1F2937"} />
-                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{name}</Text>
+                <Text style={[styles.chipText, isActive && styles.chipTextActive]} numberOfLines={1}>
+                    {name}
+                </Text>
             </TouchableOpacity>
         );
     };
@@ -185,19 +198,16 @@ export default function CategoriesScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Categories</Text>
-                <Text style={styles.subtitle}>Pick a category to explore</Text>
+            <View style={styles.chipBar}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipContent}
+                    style={{ flexGrow: 0 }}
+                >
+                    {categories.map(renderCategoryChip)}
+                </ScrollView>
             </View>
-
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-                style={{ marginBottom: 12 }}
-            >
-                {categories.map(renderCategoryChip)}
-            </ScrollView>
 
             <FlatList
                 data={products}
@@ -217,29 +227,28 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#F9FAFB",
     },
-    header: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        gap: 4,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#111827",
-    },
-    subtitle: {
-        color: "#6B7280",
-    },
     chip: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 18,
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
         borderColor: "#E5E7EB",
-        gap: 6,
+        gap: 8,
+        height: 44,
+        flexShrink: 0,
+    },
+    chipBar: {
+        height: 60,
+        justifyContent: "center",
+        marginBottom: 12,
+    },
+    chipContent: {
+        paddingHorizontal: 16,
+        gap: 10,
+        alignItems: "center",
     },
     chipActive: {
         backgroundColor: "#2563EB",
@@ -249,12 +258,13 @@ const styles = StyleSheet.create({
         textTransform: "capitalize",
         color: "#1F2937",
         fontWeight: "600",
+        fontSize: 14,
     },
     chipTextActive: {
         color: "#FFFFFF",
     },
     card: {
-        flex: 1,
+        width: CARD_WIDTH,
         backgroundColor: "#FFFFFF",
         padding: 12,
         borderRadius: 12,
@@ -274,7 +284,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#111827",
     },
-    priceRow: {
+    cardFooter: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -285,12 +295,9 @@ const styles = StyleSheet.create({
         color: "#2563EB",
     },
     addBtn: {
-        position: "absolute",
-        right: 10,
-        bottom: 10,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
         backgroundColor: "#2563EB",
         justifyContent: "center",
         alignItems: "center",
@@ -308,6 +315,10 @@ const styles = StyleSheet.create({
     rateText: {
         color: "#4B5563",
         fontWeight: "600",
+        fontSize: 12,
+    },
+    rateCount: {
+        color: "#9CA3AF",
         fontSize: 12,
     },
     loadingContainer: {

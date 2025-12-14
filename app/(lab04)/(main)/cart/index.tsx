@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -11,7 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useAuth } from "@/context/AuthContext";
@@ -36,6 +36,7 @@ type CartItemView = {
 
 export default function CartScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { userId } = useAuth();
 
     const [cart, setCart] = useState<Cart | null>(null);
@@ -76,6 +77,12 @@ export default function CartScreen() {
     useEffect(() => {
         loadCart();
     }, [userId]);
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            title: "Cart",
+        });
+    }, [navigation]);
 
     const items = useMemo<CartItemView[]>(() => {
         if (!cart) return [];

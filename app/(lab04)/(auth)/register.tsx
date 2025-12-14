@@ -8,26 +8,52 @@ export default function RegisterScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleRegister = () => {
-        if (!email || !password || !confirm) {
+        if (loading) return;
+        const trimmedEmail = email.trim();
+        const trimmedPassword = password.trim();
+        const trimmedConfirm = confirm.trim();
+
+        if (!trimmedEmail || !trimmedPassword || !trimmedConfirm) {
             Alert.alert("Missing info", "Please fill out all fields.");
             return;
         }
-        if (password !== confirm) {
+        const isEmailLike = /\S+@\S+\.\S+/.test(trimmedEmail);
+        if (!isEmailLike) {
+            Alert.alert("Invalid email", "Please enter a valid email address.");
+            return;
+        }
+        if (trimmedPassword.length < 4) {
+            Alert.alert("Weak password", "Password should be at least 4 characters.");
+            return;
+        }
+        if (trimmedPassword !== trimmedConfirm) {
             Alert.alert("Password mismatch", "Passwords do not match.");
             return;
         }
+        setLoading(true);
         Alert.alert("Registration", "Demo registration completed. Please log in.", [
-            { text: "OK", onPress: () => router.replace("/(lab04)/(auth)/login") },
+            {
+                text: "OK",
+                onPress: () => {
+                    setLoading(false);
+                    router.replace("/(lab04)/(auth)/login");
+                },
+            },
         ]);
+        if (!loading) {
+            setEmail("");
+            setPassword("");
+            setConfirm("");
+        }
     };
 
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             style={styles.container}
-            contentContainerStyle={styles.container}
         >
             <View style={styles.card}>
                 <Text style={styles.title}>Create Account</Text>
@@ -41,6 +67,10 @@ export default function RegisterScreen() {
                         value={email}
                         onChangeText={setEmail}
                         autoCapitalize="none"
+                        autoComplete="off"
+                        textContentType="none"
+                        importantForAutofill="no"
+                        autoCorrect={false}
                         keyboardType="email-address"
                         style={styles.input}
                     />
@@ -54,6 +84,10 @@ export default function RegisterScreen() {
                         secureTextEntry
                         value={password}
                         onChangeText={setPassword}
+                        autoComplete="off"
+                        textContentType="none"
+                        importantForAutofill="no"
+                        autoCorrect={false}
                         style={styles.input}
                     />
                 </View>
@@ -66,12 +100,16 @@ export default function RegisterScreen() {
                         secureTextEntry
                         value={confirm}
                         onChangeText={setConfirm}
+                        autoComplete="off"
+                        textContentType="none"
+                        importantForAutofill="no"
+                        autoCorrect={false}
                         style={styles.input}
                     />
                 </View>
 
-                <TouchableOpacity style={styles.button} onPress={handleRegister} activeOpacity={0.9}>
-                    <Text style={styles.buttonText}>REGISTER</Text>
+                <TouchableOpacity style={[styles.button, loading && { opacity: 0.7 }]} onPress={handleRegister} activeOpacity={0.9} disabled={loading}>
+                    <Text style={styles.buttonText}>{loading ? "Processing..." : "REGISTER"}</Text>
                 </TouchableOpacity>
 
                 <View style={styles.footerRow}>

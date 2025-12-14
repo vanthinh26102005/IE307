@@ -1,18 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
     Dimensions,
-    FlatList,
     Image,
-    Pressable,
-    RefreshControl,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -20,6 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { createCart, fetchProducts, fetchUserCarts, Product, updateCart } from "@/services/api";
 
 const { width } = Dimensions.get("window");
+const CARD_WIDTH = (width - 16 * 2 - 12) / 2;
 
 const BANNERS = [
     {
@@ -41,10 +40,10 @@ const BANNERS = [
 
 export default function HomeScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { userId } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
     const [addingId, setAddingId] = useState<number | null>(null);
 
     const loadProducts = async () => {
@@ -55,7 +54,6 @@ export default function HomeScreen() {
             Alert.alert("Error", "Unable to load products. Please try again.");
         } finally {
             setLoading(false);
-            setRefreshing(false);
         }
     };
 
@@ -63,10 +61,22 @@ export default function HomeScreen() {
         loadProducts();
     }, []);
 
-    const onRefresh = () => {
-        setRefreshing(true);
-        loadProducts();
-    };
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            title: "Home",
+        });
+    }, [navigation]);
+
+    const hotDeals = useMemo(() => {
+        if (!products.length) return [];
+        return products.filter((_, idx) => idx % 2 === 0).slice(0, 8);
+    }, [products]);
+
+    const newArrivals = useMemo(() => {
+        if (!products.length) return [];
+        const rest = products.filter((_, idx) => idx % 2 !== 0);
+        return rest.slice(0, 8);
+    }, [products]);
 
     const handleAddToCart = async (product: Product) => {
         if (!userId) {
@@ -108,8 +118,9 @@ export default function HomeScreen() {
         }
     };
 
-    const renderProduct = ({ item }: { item: Product }) => (
+    const renderCard = (item: Product) => (
         <TouchableOpacity
+            key={item.id}
             style={styles.card}
             activeOpacity={0.85}
             onPress={() =>
@@ -123,26 +134,27 @@ export default function HomeScreen() {
             <Text style={styles.productTitle} numberOfLines={2}>
                 {item.title}
             </Text>
-            <View style={styles.priceRow}>
+            <View style={styles.cardFooter}>
                 <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-                <View style={styles.rateRow}>
-                    <Ionicons name="star" color="#D57C2C" size={14} />
-                    <Text style={styles.rateText}>{item.rating?.rate?.toFixed(1) ?? "0.0"}</Text>
-                </View>
+                <TouchableOpacity
+                    style={styles.addBtn}
+                    onPress={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(item);
+                    }}
+                >
+                    {addingId === item.id ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                        <Ionicons name="add" size={18} color="#FFFFFF" />
+                    )}
+                </TouchableOpacity>
             </View>
-            <Pressable
-                style={styles.addBtn}
-                onPress={(e) => {
-                    e.stopPropagation();
-                    handleAddToCart(item);
-                }}
-            >
-                {addingId === item.id ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                    <Ionicons name="add" size={18} color="#FFFFFF" />
-                )}
-            </Pressable>
+            <View style={styles.rateRow}>
+                <Ionicons name="star" color="#D57C2C" size={14} />
+                <Text style={styles.rateText}>{item.rating?.rate?.toFixed(1) ?? "0.0"}</Text>
+                <Text style={styles.rateCount}>({item.rating?.count ?? 0})</Text>
+            </View>
         </TouchableOpacity>
     );
 
@@ -166,7 +178,6 @@ export default function HomeScreen() {
                         )}
                     />
                 </View>
-                <Text style={styles.sectionTitle}>Featured Products</Text>
             </View>
         ),
         []
@@ -182,18 +193,22 @@ export default function HomeScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <FlatList
-                data={products}
-                keyExtractor={(item) => item.id.toString()}
-                numColumns={2}
-                columnWrapperStyle={{ gap: 12 }}
-                contentContainerStyle={{ padding: 16, gap: 12 }}
-                renderItem={renderProduct}
-                ListHeaderComponent={listHeader}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />}
-            />
-        </View>
+        <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, gap: 20 }}>
+            {listHeader}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Hot Deals 🔥</Text>
+            </View>
+            <View style={styles.grid}>
+                {hotDeals.map(renderCard)}
+            </View>
+
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>New Arrivals ✨</Text>
+            </View>
+            <View style={styles.grid}>
+                {newArrivals.map(renderCard)}
+            </View>
+        </ScrollView>
     );
 }
 
@@ -240,14 +255,18 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         maxWidth: "80%",
     },
+    sectionHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: "700",
+        fontWeight: "800",
         color: "#111827",
-        paddingHorizontal: 4,
     },
     card: {
-        flex: 1,
+        width: CARD_WIDTH,
         backgroundColor: "#FFFFFF",
         padding: 12,
         borderRadius: 12,
@@ -267,7 +286,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#111827",
     },
-    priceRow: {
+    cardFooter: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -278,12 +297,9 @@ const styles = StyleSheet.create({
         color: "#2563EB",
     },
     addBtn: {
-        position: "absolute",
-        right: 10,
-        bottom: 10,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
         backgroundColor: "#2563EB",
         justifyContent: "center",
         alignItems: "center",
@@ -302,5 +318,15 @@ const styles = StyleSheet.create({
         color: "#4B5563",
         fontWeight: "600",
         fontSize: 12,
+    },
+    rateCount: {
+        color: "#9CA3AF",
+        fontSize: 12,
+    },
+    grid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 12,
+        justifyContent: "space-between",
     },
 });

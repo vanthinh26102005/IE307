@@ -39,7 +39,6 @@ export default function Lab04Login() {
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             style={styles.container}
-            contentContainerStyle={styles.container}
         >
             <View style={styles.card}>
                 <Image source={require("@/assets/images/icon.png")} style={styles.logo} />

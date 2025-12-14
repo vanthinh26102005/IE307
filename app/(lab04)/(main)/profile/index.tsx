@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +11,7 @@ const AVATAR =
 
 export default function ProfileScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { userId, signOut } = useAuth();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
@@ -34,6 +35,14 @@ export default function ProfileScreen() {
     useEffect(() => {
         loadUser();
     }, [userId]);
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            title: "Profile",
+            headerTitleStyle: { color: "#111827", fontWeight: "800" },
+            headerTitleAlign: "left",
+        });
+    }, [navigation]);
 
     const handleLogout = async () => {
         await signOut();
