@@ -11,10 +11,12 @@ type AuthContextType = {
     userId: number | null;
     email: string | null;
     favouritesCount: number;
+    cartCount: number | undefined;
     isRestoring: boolean;
     signIn: (email: string, password: string) => Promise<{ ok: boolean; message?: string }>;
     signOut: () => Promise<void>;
     setFavouritesCount: (n: number) => void;
+    setCartCount: (n: number | undefined) => void;
 };
 
 type DecodedToken = {
@@ -47,6 +49,7 @@ export const AuthProvider = ({ children, enableRedirect = true }: AuthProviderPr
     const [email, setEmail] = useState<string | null>(null);
     const [isRestoring, setIsRestoring] = useState(true);
     const [favouritesCount, setFavouritesCount] = useState<number>(3);
+    const [cartCount, setCartCount] = useState<number | undefined>(undefined);
 
     useEffect(() => {
         const restoreSession = async () => {
@@ -159,8 +162,10 @@ export const AuthProvider = ({ children, enableRedirect = true }: AuthProviderPr
                 signIn,
                 signOut,
                 setFavouritesCount,
+                cartCount,
+                setCartCount,
             },
-        [parentContext, token, userId, email, favouritesCount, isRestoring]
+        [parentContext, token, userId, email, favouritesCount, isRestoring, cartCount]
     );
 
     if (parentContext) {

@@ -1,4 +1,5 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -12,6 +13,7 @@ import {
     View,
 } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useAuth } from "@/context/AuthContext";
@@ -34,10 +36,12 @@ type CartItemView = {
     productId: number;
 };
 
+const CART_CACHE_PREFIX = "lab04_cart_cache_user_";
+
 export default function CartScreen() {
     const router = useRouter();
     const navigation = useNavigation();
-    const { userId } = useAuth();
+    const { userId, setCartCount, cartCount } = useAuth();
 
     const [cart, setCart] = useState<Cart | null>(null);
     const [productMap, setProductMap] = useState<Record<number, Product>>({});
@@ -51,21 +55,41 @@ export default function CartScreen() {
         if (!userId) {
             setLoading(false);
             setRefreshing(false);
+            setCart(null);
+            setCartCount(undefined);
             return;
         }
         setLoading(true);
         try {
-            const [cartResponse, productsResponse] = await Promise.all([
-                fetchUserCarts(userId),
-                fetchProducts(),
-            ]);
-            const firstCart = cartResponse.data?.[0] ?? null;
-            setCart(firstCart);
+            const productsResponse = await fetchProducts();
             const map: Record<number, Product> = {};
             productsResponse.data.forEach((p) => {
                 map[p.id] = p;
             });
             setProductMap(map);
+
+            const cacheKey = `${CART_CACHE_PREFIX}${userId}`;
+            const cached = await AsyncStorage.getItem(cacheKey);
+            if (cached) {
+                const parsed: Cart = JSON.parse(cached);
+                setCart(parsed);
+                const count = parsed.products.reduce((sum, p) => sum + p.quantity, 0);
+                setCartCount(count > 0 ? count : undefined);
+                setLoading(false);
+                setRefreshing(false);
+                return;
+            }
+
+            const cartResponse = await fetchUserCarts(userId);
+            const firstCart = cartResponse.data?.[0] ?? null;
+            setCart(firstCart);
+            if (firstCart) {
+                await AsyncStorage.setItem(cacheKey, JSON.stringify(firstCart));
+                const count = firstCart.products.reduce((sum, p) => sum + p.quantity, 0);
+                setCartCount(count > 0 ? count : undefined);
+            } else {
+                setCartCount(undefined);
+            }
         } catch (error) {
             Alert.alert("Error", "Unable to load cart. Please try again.");
         } finally {
@@ -77,6 +101,12 @@ export default function CartScreen() {
     useEffect(() => {
         loadCart();
     }, [userId]);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadCart();
+        }, [userId, cartCount])
+    );
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -106,18 +136,25 @@ export default function CartScreen() {
     const syncCart = async (nextProducts: CartProduct[]) => {
         if (!cart) return;
         const prevCart = cart;
-        setCart({ ...cart, products: nextProducts });
+        const nextCart = { ...cart, products: nextProducts };
+        setCart(nextCart);
+        const count = nextProducts.reduce((sum, p) => sum + p.quantity, 0);
+        setCartCount(count > 0 ? count : undefined);
         setUpdating(true);
+        const cacheKey = `${CART_CACHE_PREFIX}${cart.userId}`;
         try {
             if (nextProducts.length === 0) {
                 await deleteCart(cart.id);
-                setCart(null);
+                const emptyCart: Cart = { ...cart, products: [] };
+                setCart(emptyCart);
+                await AsyncStorage.setItem(cacheKey, JSON.stringify(emptyCart));
             } else {
                 await updateCart(cart.id, {
                     ...cart,
                     date: new Date().toISOString(),
                     products: nextProducts,
                 });
+                await AsyncStorage.setItem(cacheKey, JSON.stringify(nextCart));
             }
         } catch (error) {
             setCart(prevCart);
@@ -190,7 +227,10 @@ export default function CartScreen() {
                 <Text numberOfLines={2} style={styles.itemTitle}>
                     {item.title}
                 </Text>
-                <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                <View style={styles.priceRow}>
+                    <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                    <Text style={styles.itemTotal}>Total: ${(item.price * item.quantity).toFixed(2)}</Text>
+                </View>
                 <View style={styles.quantityRow}>
                     <TouchableOpacity
                         style={styles.qtyBtn}
@@ -319,9 +359,19 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#111827",
     },
+    priceRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
     itemPrice: {
         color: "#2563EB",
         fontWeight: "700",
+    },
+    itemTotal: {
+        color: "#4B5563",
+        fontWeight: "700",
+        fontSize: 13,
     },
     quantityRow: {
         flexDirection: "row",

@@ -6,13 +6,14 @@ import { useAuth } from "@/context/AuthContext";
 import { fetchUserCarts } from "@/services/api";
 
 export default function Lab04MainLayout() {
-    const { userId } = useAuth();
-    const [cartCount, setCartCount] = useState<number | undefined>(undefined);
+    const { userId, cartCount, setCartCount } = useAuth();
+    const [localCount, setLocalCount] = useState<number | undefined>(undefined);
 
     useEffect(() => {
         const loadBadge = async () => {
             if (!userId) {
                 setCartCount(undefined);
+                setLocalCount(undefined);
                 return;
             }
             try {
@@ -20,16 +21,20 @@ export default function Lab04MainLayout() {
                 const first = response.data?.[0];
                 if (first) {
                     const count = first.products.reduce((sum, p) => sum + p.quantity, 0);
-                    setCartCount(count > 0 ? count : undefined);
+                    const badge = count > 0 ? count : undefined;
+                    setCartCount(badge);
+                    setLocalCount(badge);
                 } else {
                     setCartCount(undefined);
+                    setLocalCount(undefined);
                 }
             } catch (error) {
                 setCartCount(undefined);
+                setLocalCount(undefined);
             }
         };
         loadBadge();
-    }, [userId]);
+    }, [userId, setCartCount]);
 
     return (
         <Tabs
@@ -61,7 +66,7 @@ export default function Lab04MainLayout() {
                 options={{
                     title: "Cart",
                     tabBarLabel: "Cart",
-                    tabBarBadge: cartCount,
+                    tabBarBadge: cartCount ?? localCount,
                     tabBarIcon: ({ color, size }) => <Ionicons name="cart-outline" size={size} color={color} />
                 }}
             />
