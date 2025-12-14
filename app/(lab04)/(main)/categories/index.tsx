@@ -105,54 +105,40 @@ export default function CategoriesScreen() {
         setAddingId(product.id);
         try {
             const cacheKey = `${CART_CACHE_PREFIX}${userId}`;
-            const cartsResponse = await fetchUserCarts(userId);
-            const existingCart = cartsResponse.data[0];
-            let newCount = 1;
-            if (existingCart) {
-                const updatedProducts = [...existingCart.products];
-                const index = updatedProducts.findIndex((p) => p.productId === product.id);
-                if (index >= 0) {
-                    newCount = updatedProducts.reduce((sum, p, idx) =>
-                        idx === index ? sum + p.quantity + 1 : sum + p.quantity, 0);
-                    updatedProducts[index] = { ...updatedProducts[index], quantity: updatedProducts[index].quantity + 1 };
-                } else {
-                    updatedProducts.push({ productId: product.id, quantity: 1 });
-                    newCount = updatedProducts.reduce((sum, p) => sum + p.quantity, 0);
-                }
-                await updateCart(existingCart.id, {
-                    ...existingCart,
+            const cached = await AsyncStorage.getItem(cacheKey);
+            let baseCart: Cart | null = cached ? JSON.parse(cached) : null;
+            if (!baseCart) {
+                const cartsResponse = await fetchUserCarts(userId);
+                baseCart = cartsResponse.data[0] ?? null;
+            }
+
+            let updatedProducts: CartProduct[] = baseCart ? [...baseCart.products] : [];
+            const idxProd = updatedProducts.findIndex((p) => p.productId === product.id);
+            if (idxProd >= 0) {
+                updatedProducts[idxProd] = { ...updatedProducts[idxProd], quantity: updatedProducts[idxProd].quantity + 1 };
+            } else {
+                updatedProducts.push({ productId: product.id, quantity: 1 });
+            }
+            const newCount = updatedProducts.reduce((sum, p) => sum + p.quantity, 0);
+
+            if (baseCart && baseCart.id) {
+                await updateCart(baseCart.id, {
+                    ...baseCart,
                     date: new Date().toISOString(),
                     products: updatedProducts,
                 });
+                baseCart = { ...baseCart, products: updatedProducts };
             } else {
-                await createCart({
+                const created = await createCart({
                     userId,
                     date: new Date().toISOString(),
-                    products: [{ productId: product.id, quantity: 1 }],
+                    products: updatedProducts,
                 });
+                baseCart = created.data;
             }
-            setCartCount((prev) => {
-                if (typeof prev === "number") return prev + 1;
-                return newCount;
-            });
-            try {
-                const cached = await AsyncStorage.getItem(cacheKey);
-                let nextCart: Cart;
-                if (cached) {
-                    nextCart = JSON.parse(cached);
-                } else {
-                    nextCart = { id: Date.now(), userId, date: new Date().toISOString(), products: [] };
-                }
-                const idx = nextCart.products.findIndex((p) => p.productId === product.id);
-                if (idx >= 0) {
-                    nextCart.products[idx].quantity += 1;
-                } else {
-                    nextCart.products.push({ productId: product.id, quantity: 1 });
-                }
-                await AsyncStorage.setItem(cacheKey, JSON.stringify(nextCart));
-            } catch (err) {
-                // cache update best-effort
-            }
+
+            setCartCount(newCount > 0 ? newCount : undefined);
+            await AsyncStorage.setItem(cacheKey, JSON.stringify(baseCart));
             Alert.alert("Success", "Product added to cart.");
         } catch (error) {
             Alert.alert("Error", "Unable to add to cart.");

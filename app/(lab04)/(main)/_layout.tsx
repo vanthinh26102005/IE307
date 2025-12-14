@@ -4,6 +4,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useAuth } from "@/context/AuthContext";
 import { fetchUserCarts } from "@/services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const CART_CACHE_PREFIX = "lab04_cart_cache_user_";
 
 export default function Lab04MainLayout() {
     const { userId, cartCount, setCartCount } = useAuth();
@@ -17,16 +20,26 @@ export default function Lab04MainLayout() {
                 return;
             }
             try {
-                const response = await fetchUserCarts(userId);
-                const first = response.data?.[0];
-                if (first) {
-                    const count = first.products.reduce((sum, p) => sum + p.quantity, 0);
+                const cacheKey = `${CART_CACHE_PREFIX}${userId}`;
+                const cached = await AsyncStorage.getItem(cacheKey);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    const count = parsed?.products?.reduce?.((sum: number, p: any) => sum + (p.quantity || 0), 0) || 0;
                     const badge = count > 0 ? count : undefined;
                     setCartCount(badge);
                     setLocalCount(badge);
                 } else {
-                    setCartCount(undefined);
-                    setLocalCount(undefined);
+                    const response = await fetchUserCarts(userId);
+                    const first = response.data?.[0];
+                    if (first) {
+                        const count = first.products.reduce((sum, p) => sum + p.quantity, 0);
+                        const badge = count > 0 ? count : undefined;
+                        setCartCount(badge);
+                        setLocalCount(badge);
+                    } else {
+                        setCartCount(undefined);
+                        setLocalCount(undefined);
+                    }
                 }
             } catch (error) {
                 setCartCount(undefined);
@@ -35,6 +48,10 @@ export default function Lab04MainLayout() {
         };
         loadBadge();
     }, [userId, setCartCount]);
+
+    useEffect(() => {
+        setLocalCount(cartCount);
+    }, [cartCount]);
 
     return (
         <Tabs
