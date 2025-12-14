@@ -41,9 +41,9 @@ export default function Lab04Login() {
             style={styles.container}
         >
             <View style={styles.card}>
-                <Image source={require("@/assets/images/icon.png")} style={styles.logo} />
-                <Text style={styles.title}>Welcome</Text>
-                <Text style={styles.subtitle}>Sign in to continue</Text>
+                <Image source={require("@/app/screens/assets/react-logo.png")} style={styles.logo} />
+                <Text style={styles.title}>Welcome 23521500</Text>
+                <Text style={styles.subtitle}>Ngô Văn Thịnh BTTH4</Text>
 
                 <View style={styles.inputWrapper}>
                     <Ionicons name="mail-outline" size={20} color="#6B7280" />
@@ -73,6 +73,13 @@ export default function Lab04Login() {
                 <TouchableOpacity style={[styles.button, loading && styles.disabledButton]} onPress={handleLogin} activeOpacity={0.9}>
                     <Text style={styles.buttonText}>{loading ? "Signing in..." : "LOG IN"}</Text>
                 </TouchableOpacity>
+
+                <Text style={styles.orText}>Or login with</Text>
+
+                <View style={styles.socialRow}>
+                    <Image source={require("@/app/screens/assets/facebook-logo.png")} style={styles.socialIcon} />
+                    <Image source={require("@/app/screens/assets/google-logo.png")} style={styles.socialIcon} />
+                </View>
 
                 <View style={styles.footerRow}>
                     <Text style={styles.footerText}>Don’t have an account?</Text>
@@ -156,6 +163,19 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
         fontWeight: "700",
         fontSize: 16,
+    },
+    orText: {
+        color: "#6B7280",
+        marginTop: 8,
+    },
+    socialRow: {
+        flexDirection: "row",
+        gap: 24,
+        marginBottom: 4,
+    },
+    socialIcon: {
+        width: 45,
+        height: 45,
     },
     footerRow: {
         flexDirection: "row",
