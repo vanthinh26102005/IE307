@@ -1,5 +1,7 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
     ActivityIndicator,
     Alert,
@@ -14,8 +16,11 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { fetchUser, updateUser, User } from "@/services/api";
 
+const PROFILE_CACHE_PREFIX = "lab04_profile_override_";
+
 export default function EditProfileScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { id } = useLocalSearchParams<{ id?: string }>();
     const { userId } = useAuth();
     const targetId = Number(id || userId);
@@ -42,7 +47,17 @@ export default function EditProfileScreen() {
         setLoading(true);
         try {
             const response = await fetchUser(targetId);
-            const user: User = response.data;
+            let user: User = response.data;
+            const cached = await AsyncStorage.getItem(`${PROFILE_CACHE_PREFIX}${targetId}`);
+            if (cached) {
+                const override = JSON.parse(cached);
+                user = {
+                    ...user,
+                    ...override,
+                    name: override.name ?? user.name,
+                    address: override.address ?? user.address,
+                };
+            }
             setForm({
                 firstname: user.name.firstname,
                 lastname: user.name.lastname,
@@ -65,11 +80,17 @@ export default function EditProfileScreen() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [targetId]);
 
+    useFocusEffect(
+        useCallback(() => {
+            loadUser();
+        }, [targetId])
+    );
+
     const updateField = (key: keyof typeof form, value: string) => {
         setForm((prev) => ({ ...prev, [key]: value }));
     };
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         if (!form.firstname || !form.lastname || !form.username || !form.email) {
             Alert.alert("Validation", "Please fill in all required fields.");
             return;
@@ -95,12 +116,45 @@ export default function EditProfileScreen() {
             Alert.alert("Success", "Profile updated successfully.", [
                 { text: "OK", onPress: () => router.back() },
             ]);
+            try {
+                await AsyncStorage.setItem(
+                    `${PROFILE_CACHE_PREFIX}${targetId}`,
+                    JSON.stringify({
+                        name: { firstname: form.firstname, lastname: form.lastname },
+                        username: form.username,
+                        email: form.email,
+                        phone: form.phone,
+                        address: {
+                            city: form.city,
+                            street: form.street,
+                            number: Number(form.number) || 0,
+                            zipcode: "00000",
+                        },
+                    })
+                );
+            } catch {
+                // ignore cache error
+            }
         } catch (error) {
             Alert.alert("Error", "Unable to update profile. Please try again.");
         } finally {
             setSaving(false);
         }
-    };
+    }, [form, targetId, router]);
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            title: "Edit Profile",
+            headerRight: () =>
+                saving ? (
+                    <ActivityIndicator color="#2563EB" />
+                ) : (
+                    <TouchableOpacity onPress={handleSave} hitSlop={10}>
+                        <Text style={{ color: "#2563EB", fontWeight: "800", fontSize: 16 }}>✓</Text>
+                    </TouchableOpacity>
+                ),
+        });
+    }, [navigation, handleSave, saving]);
 
     if (loading) {
         return (
@@ -113,7 +167,6 @@ export default function EditProfileScreen() {
 
     return (
         <ScrollView contentContainerStyle={styles.container} style={{ backgroundColor: "#F9FAFB" }}>
-            <Text style={styles.title}>Edit Profile</Text>
             <View style={styles.row}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                     <Text style={styles.label}>First Name</Text>
@@ -209,14 +262,6 @@ export default function EditProfileScreen() {
                 />
             </View>
 
-            <TouchableOpacity
-                style={[styles.button, saving && { opacity: 0.7 }]}
-                onPress={handleSave}
-                activeOpacity={0.9}
-                disabled={saving}
-            >
-                {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>SAVE</Text>}
-            </TouchableOpacity>
         </ScrollView>
     );
 }
@@ -226,11 +271,6 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         padding: 16,
         gap: 12,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: "800",
-        color: "#111827",
     },
     row: {
         flexDirection: "row",
@@ -253,18 +293,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 10,
         color: "#111827",
-    },
-    button: {
-        backgroundColor: "#2563EB",
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: "center",
-        marginTop: 8,
-    },
-    buttonText: {
-        color: "#FFFFFF",
-        fontWeight: "800",
-        fontSize: 16,
     },
     loadingContainer: {
         flex: 1,

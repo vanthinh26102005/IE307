@@ -1,5 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -8,6 +10,7 @@ import { fetchUser, User } from "@/services/api";
 
 const AVATAR =
     "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=60";
+const PROFILE_CACHE_PREFIX = "lab04_profile_override_";
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -24,7 +27,14 @@ export default function ProfileScreen() {
         setLoading(true);
         try {
             const response = await fetchUser(userId);
-            setUser(response.data);
+            let profile = response.data;
+            const cacheKey = `${PROFILE_CACHE_PREFIX}${userId}`;
+            const cached = await AsyncStorage.getItem(cacheKey);
+            if (cached) {
+                const override = JSON.parse(cached);
+                profile = { ...profile, ...override };
+            }
+            setUser(profile);
         } catch (error) {
             Alert.alert("Error", "Unable to load user info.");
         } finally {
@@ -35,6 +45,12 @@ export default function ProfileScreen() {
     useEffect(() => {
         loadUser();
     }, [userId]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadUser();
+        }, [userId])
+    );
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -71,7 +87,7 @@ export default function ProfileScreen() {
 
     return (
         <ScrollView contentContainerStyle={styles.container} style={{ backgroundColor: "#F9FAFB" }}>
-            <View style={styles.card}>
+            <View style={styles.profileCard}>
                 <View style={styles.headerRow}>
                     <View style={styles.avatarWrapper}>
                         <Image source={{ uri: AVATAR }} style={styles.avatar} />
@@ -80,29 +96,39 @@ export default function ProfileScreen() {
                         <Text style={styles.name}>
                             {user?.name.firstname} {user?.name.lastname}
                         </Text>
-                        <Text style={styles.username}>@{user?.username}</Text>
+                        <Text style={styles.usernameLabel}>@{user?.username}</Text>
                     </View>
                     <TouchableOpacity
                         style={styles.editButton}
-                        onPress={() => router.push({ pathname: "/(lab04)/(main)/profile/edit", params: { id: userId.toString() } })}
+                        onPress={() => router.push({ pathname: "/(lab04)/(main)/profile/edit", params: { id: userId?.toString() } })}
                     >
                         <Ionicons name="create-outline" size={20} color="#2563EB" />
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.infoRow}>
-                    <Text style={styles.label}>Email</Text>
-                    <Text style={styles.value}>{user?.email}</Text>
+                <View style={styles.infoGroup}>
+                    <Text style={styles.infoLabel}>Name</Text>
+                    <Text style={styles.infoValue}>
+                        {user?.name.firstname} {user?.name.lastname}
+                    </Text>
                 </View>
-                <View style={styles.infoRow}>
-                    <Text style={styles.label}>Phone</Text>
-                    <Text style={styles.value}>{user?.phone}</Text>
+                <View style={styles.infoGroup}>
+                    <Text style={styles.infoLabel}>Username</Text>
+                    <Text style={styles.infoValue}>{user?.username}</Text>
                 </View>
-                <View style={styles.infoRow}>
-                    <Text style={styles.label}>Address</Text>
-                    <Text
-                        style={styles.value}
-                    >{`${user?.address.number} ${user?.address.street}, ${user?.address.city}`}</Text>
+                <View style={styles.infoGroup}>
+                    <Text style={styles.infoLabel}>Email</Text>
+                    <Text style={styles.infoValue}>{user?.email}</Text>
+                </View>
+                <View style={styles.infoGroup}>
+                    <Text style={styles.infoLabel}>Phone</Text>
+                    <Text style={styles.infoValue}>{user?.phone}</Text>
+                </View>
+                <View style={styles.infoGroup}>
+                    <Text style={styles.infoLabel}>Address</Text>
+                    <Text style={styles.infoValue}>
+                        {user?.address.number} {user?.address.street}, {user?.address.city}
+                    </Text>
                 </View>
 
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.9}>
@@ -119,7 +145,7 @@ const styles = StyleSheet.create({
         padding: 16,
         backgroundColor: "#F9FAFB",
     },
-    card: {
+    profileCard: {
         backgroundColor: "#FFFFFF",
         padding: 20,
         borderRadius: 16,
@@ -152,8 +178,9 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: "#111827",
     },
-    username: {
+    usernameLabel: {
         color: "#6B7280",
+        fontWeight: "600",
     },
     editButton: {
         padding: 8,
@@ -161,18 +188,16 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#E5E7EB",
     },
-    infoRow: {
+    infoGroup: {
         gap: 4,
     },
-    label: {
-        color: "#6B7280",
-        fontSize: 13,
-        fontWeight: "600",
-    },
-    value: {
-        fontSize: 15,
+    infoLabel: {
+        fontWeight: "700",
         color: "#111827",
-        fontWeight: "600",
+    },
+    infoValue: {
+        color: "#111827",
+        fontSize: 15,
     },
     logoutButton: {
         marginTop: 8,
