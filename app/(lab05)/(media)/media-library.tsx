@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
 import {
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -12,6 +11,8 @@ import {
 } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 import { requestMediaLibraryPermission } from "@/utils/permissions";
+import BottomTabs from "@/components/lab05/BottomTabs";
+import { Image as ExpoImage } from "expo-image";
 
 export default function MediaLibraryScreen() {
   const router = useRouter();
@@ -45,12 +46,13 @@ export default function MediaLibraryScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      title: "My Gallery",
       headerRight: () => (
         <Pressable
           onPress={() => router.push("/(lab05)/(media)/record-video")}
           style={styles.headerButton}
         >
-          <Ionicons name="videocam" size={22} color="#0F766E" />
+          <Ionicons name="videocam" size={22} color="#DC2626" />
         </Pressable>
       ),
     });
@@ -58,29 +60,36 @@ export default function MediaLibraryScreen() {
 
   return (
     <View style={styles.container}>
-      {error ? (
-        <Text style={styles.placeholder}>{error}</Text>
-      ) : (
-        <FlatList
-          data={assets}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.column}
-          renderItem={({ item }) => (
-            <View style={styles.assetCard}>
-              {item.mediaType === MediaLibrary.MediaType.photo ? (
-                <Image source={{ uri: item.uri }} style={styles.assetImage} />
-              ) : (
-                <View style={styles.videoPlaceholder}>
-                  <Ionicons name="play-circle" size={32} color="#FFFFFF" />
-                  <Text style={styles.videoLabel}>Video</Text>
-                </View>
-              )}
-            </View>
-          )}
-        />
-      )}
+      <View style={styles.content}>
+        {error ? (
+          <Text style={styles.placeholder}>{error}</Text>
+        ) : (
+          <FlatList
+            data={assets}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            columnWrapperStyle={styles.column}
+            renderItem={({ item }) => (
+              <View style={styles.assetCard}>
+                <ExpoImage
+                  source={{ uri: item.uri }}
+                  style={styles.assetImage}
+                  contentFit="cover"
+                  transition={150}
+                />
+                {item.mediaType === MediaLibrary.MediaType.video && (
+                  <View style={styles.videoOverlay}>
+                    <Ionicons name="play-circle" size={32} color="#FFFFFF" />
+                  </View>
+                )}
+              </View>
+            )}
+          />
+        )}
+      </View>
+      <BottomTabs active="media" />
     </View>
   );
 }
@@ -88,7 +97,7 @@ export default function MediaLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF",
   },
   headerButton: {
     marginRight: 12,
@@ -96,6 +105,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 12,
     gap: 12,
+    paddingBottom: 24,
   },
   column: {
     gap: 12,
@@ -103,25 +113,30 @@ const styles = StyleSheet.create({
   assetCard: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 6,
     overflow: "hidden",
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   assetImage: {
     width: "100%",
     height: 160,
   },
-  videoPlaceholder: {
-    width: "100%",
-    height: 160,
+  list: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+  },
+  videoOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0F172A",
-    gap: 6,
-  },
-  videoLabel: {
-    color: "#E2E8F0",
-    fontSize: 12,
+    backgroundColor: "rgba(15, 23, 42, 0.35)",
   },
   placeholder: {
     textAlign: "center",

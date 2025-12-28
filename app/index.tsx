@@ -41,6 +41,12 @@ export default function Index() {
                     <Text style={styles.btnText}>LAB04 (Communicating with Servers)</Text>
                 </TouchableOpacity>
             </Link>
+
+            <Link href="/(lab05)" asChild>
+                <TouchableOpacity style={styles.btn}>
+                    <Text style={styles.btnText}>LAB05 (Native Device Features)</Text>
+                </TouchableOpacity>
+            </Link>
         </View>
     );
 }

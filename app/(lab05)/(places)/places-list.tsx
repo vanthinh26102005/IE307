@@ -4,13 +4,14 @@ import { useRouter } from "expo-router";
 import { useCallback, useLayoutEffect, useState } from "react";
 import {
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { getPlaces, initDb, type Place } from "@/utils/db";
+import BottomTabs from "@/components/lab05/BottomTabs";
+import { Image as ExpoImage } from "expo-image";
 
 export default function PlacesListScreen() {
   const router = useRouter();
@@ -34,12 +35,13 @@ export default function PlacesListScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      title: "My Places",
       headerRight: () => (
         <Pressable
           onPress={() => router.push("/(lab05)/(places)/add-place")}
           style={styles.headerButton}
         >
-          <Ionicons name="add" size={24} color="#1D4ED8" />
+          <Ionicons name="add" size={20} color="#FFFFFF" />
         </Pressable>
       ),
     });
@@ -47,36 +49,46 @@ export default function PlacesListScreen() {
 
   return (
     <View style={styles.container}>
-      {isLoading ? (
-        <Text style={styles.placeholder}>Loading places...</Text>
-      ) : places.length === 0 ? (
-        <Text style={styles.placeholder}>No places yet. Add your first one.</Text>
-      ) : (
-        <FlatList
-          data={places}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.card}
-              onPress={() =>
-                router.push({
-                  pathname: "/(lab05)/(places)/place-detail",
-                  params: { id: String(item.id) },
-                })
-              }
-            >
-              <Image source={{ uri: item.imageUri }} style={styles.cardImage} />
-              <View style={styles.cardContent}> 
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardSubtitle} numberOfLines={2}>
-                  {item.address}
-                </Text>
-              </View>
-            </Pressable>
-          )}
-        />
-      )}
+      <View style={styles.content}>
+        {isLoading ? (
+          <Text style={styles.placeholder}>Loading places...</Text>
+        ) : places.length === 0 ? (
+          <Text style={styles.placeholder}>
+            No places added yet - start adding some!
+          </Text>
+        ) : (
+          <FlatList
+            data={places}
+            keyExtractor={(item) => String(item.id)}
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => (
+              <Pressable
+                style={styles.card}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(lab05)/(places)/place-detail",
+                    params: { id: String(item.id) },
+                  })
+                }
+              >
+              <ExpoImage
+                source={{ uri: item.imageUri }}
+                style={styles.cardImage}
+                contentFit="cover"
+              />
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Text style={styles.cardSubtitle} numberOfLines={2}>
+                    {item.address}
+                  </Text>
+                </View>
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
+      <BottomTabs active="places" />
     </View>
   );
 }
@@ -84,25 +96,35 @@ export default function PlacesListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF",
   },
   headerButton: {
     marginRight: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F97316",
+    alignItems: "center",
+    justifyContent: "center",
   },
   listContent: {
     padding: 16,
     gap: 12,
+    paddingBottom: 24,
+  },
+  list: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
   },
   card: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
     overflow: "hidden",
-    elevation: 2,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   cardImage: {
     width: 96,

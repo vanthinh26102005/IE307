@@ -1,11 +1,16 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useLayoutEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { getPlaceById, type Place } from "@/utils/db";
+import BottomTabs from "@/components/lab05/BottomTabs";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { Image as ExpoImage } from "expo-image";
 
 export default function PlaceDetailScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const params = useLocalSearchParams<{ id?: string }>();
   const [place, setPlace] = useState<Place | null>(null);
 
@@ -23,6 +28,12 @@ export default function PlaceDetailScreen() {
     void loadPlace();
   }, [params.id]);
 
+  useLayoutEffect(() => {
+    if (place?.title) {
+      navigation.setOptions({ title: place.title });
+    }
+  }, [navigation, place?.title]);
+
   if (!place) {
     return (
       <View style={styles.container}>
@@ -33,40 +44,44 @@ export default function PlaceDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={{ uri: place.imageUri }} style={styles.image} />
-      <View style={styles.content}>
-        <Text style={styles.title}>{place.title}</Text>
-        <Text style={styles.address}>{place.address}</Text>
+      <View style={styles.body}>
+        <ExpoImage source={{ uri: place.imageUri }} style={styles.image} />
+        <View style={styles.content}>
+          <Text style={styles.title}>{place.title}</Text>
+          <Text style={styles.address}>{place.address}</Text>
+        </View>
+        <MapView
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          initialRegion={{
+            latitude: place.lat,
+            longitude: place.lng,
+            latitudeDelta: 0.012,
+            longitudeDelta: 0.012,
+          }}
+          scrollEnabled={false}
+          zoomEnabled={false}
+        >
+          <Marker coordinate={{ latitude: place.lat, longitude: place.lng }} />
+        </MapView>
+        <Pressable
+          style={styles.button}
+          onPress={() =>
+            router.push({
+              pathname: "/(lab05)/(places)/map",
+              params: {
+                lat: String(place.lat),
+                lng: String(place.lng),
+                mode: "view",
+              },
+            })
+          }
+        >
+          <Ionicons name="map" size={16} color="#2563EB" />
+          <Text style={styles.buttonText}>View on Map</Text>
+        </Pressable>
       </View>
-      <MapView
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={{
-          latitude: place.lat,
-          longitude: place.lng,
-          latitudeDelta: 0.012,
-          longitudeDelta: 0.012,
-        }}
-        scrollEnabled={false}
-        zoomEnabled={false}
-      >
-        <Marker coordinate={{ latitude: place.lat, longitude: place.lng }} />
-      </MapView>
-      <Pressable
-        style={styles.button}
-        onPress={() =>
-          router.push({
-            pathname: "/(lab05)/(places)/map",
-            params: {
-              lat: String(place.lat),
-              lng: String(place.lng),
-              mode: "view",
-            },
-          })
-        }
-      >
-        <Text style={styles.buttonText}>View on Map</Text>
-      </Pressable>
+      <BottomTabs active="places" />
     </View>
   );
 }
@@ -74,7 +89,10 @@ export default function PlaceDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF",
+  },
+  body: {
+    flex: 1,
   },
   image: {
     width: "100%",
@@ -95,19 +113,23 @@ const styles = StyleSheet.create({
   map: {
     marginHorizontal: 16,
     height: 180,
-    borderRadius: 12,
+    borderRadius: 6,
     overflow: "hidden",
   },
   button: {
     marginTop: 16,
     marginHorizontal: 16,
-    backgroundColor: "#1D4ED8",
-    paddingVertical: 12,
-    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#2563EB",
+    paddingVertical: 10,
+    borderRadius: 4,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
   },
   buttonText: {
-    color: "#FFFFFF",
+    color: "#2563EB",
     fontWeight: "600",
   },
   placeholder: {

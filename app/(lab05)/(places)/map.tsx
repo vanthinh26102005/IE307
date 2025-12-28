@@ -1,8 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useLayoutEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import MapView, { Marker, MapPressEvent, PROVIDER_GOOGLE } from "react-native-maps";
+import BottomTabs from "@/components/lab05/BottomTabs";
+import { Ionicons } from "@expo/vector-icons";
+import { reverseGeocode } from "@/utils/location";
 
 const DEFAULT_REGION = {
   latitude: 10.776889,
@@ -27,6 +30,26 @@ export default function MapScreen() {
   }, [params.lat, params.lng]);
 
   const [selected, setSelected] = useState(initialCoords);
+  const [selectedAddress, setSelectedAddress] = useState("");
+
+  useEffect(() => {
+    let isActive = true;
+    const loadAddress = async () => {
+      if (!selected) {
+        if (isActive) setSelectedAddress("");
+        return;
+      }
+      const address = await reverseGeocode(selected.lat, selected.lng);
+      if (isActive) {
+        const fallback = `${selected.lat.toFixed(5)}, ${selected.lng.toFixed(5)}`;
+        setSelectedAddress(address || fallback);
+      }
+    };
+    void loadAddress();
+    return () => {
+      isActive = false;
+    };
+  }, [selected]);
 
   const handleSelect = (event: MapPressEvent) => {
     if (!isPicking) {
@@ -55,7 +78,7 @@ export default function MapScreen() {
       headerRight: isPicking
         ? () => (
             <Pressable style={styles.headerButton} onPress={handleSave}>
-              <Text style={styles.headerButtonText}>Save</Text>
+              <Ionicons name="save" size={20} color="#2563EB" />
             </Pressable>
           )
         : undefined,
@@ -80,9 +103,15 @@ export default function MapScreen() {
         onPress={handleSelect}
       >
         {selected && (
-          <Marker coordinate={{ latitude: selected.lat, longitude: selected.lng }} />
+          <Marker
+            coordinate={{ latitude: selected.lat, longitude: selected.lng }}
+            title={selectedAddress || "Selected location"}
+          />
         )}
       </MapView>
+      <View style={styles.tabs}>
+        <BottomTabs active="places" />
+      </View>
     </View>
   );
 }
@@ -94,11 +123,13 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  tabs: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   headerButton: {
     marginRight: 12,
-  },
-  headerButtonText: {
-    color: "#1D4ED8",
-    fontWeight: "600",
   },
 });

@@ -1,10 +1,8 @@
-import { Camera, CameraType } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,7 +10,11 @@ import {
   TextInput,
   View,
 } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import { Image as ExpoImage } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { insertPlace } from "@/utils/db";
+import * as FileSystem from "expo-file-system";
 import {
   requestCameraPermission,
   requestLocationPermission,
@@ -20,11 +22,16 @@ import {
 } from "@/utils/permissions";
 import { scheduleNotificationAsync } from "@/utils/notifications";
 import { getCurrentLocation, reverseGeocode } from "@/utils/location";
+import BottomTabs from "@/components/lab05/BottomTabs";
 
 export default function AddPlaceScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ lat?: string; lng?: string }>();
-  const cameraRef = useRef<Camera | null>(null);
+  const params = useLocalSearchParams<{
+    lat?: string;
+    lng?: string;
+    imageUri?: string;
+    title?: string;
+  }>();
 
   const [title, setTitle] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -33,7 +40,26 @@ export default function AddPlaceScreen() {
     lng: number;
     address: string;
   } | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
+
+  const persistImageUri = async (uri: string) => {
+    const baseDir = FileSystem.documentDirectory;
+    if (!baseDir || !uri.startsWith("file://")) {
+      return uri;
+    }
+    const imagesDir = `${baseDir}places`;
+    const dirInfo = await FileSystem.getInfoAsync(imagesDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(imagesDir, { intermediates: true });
+    }
+    if (uri.startsWith(imagesDir)) {
+      return uri;
+    }
+    const extension = uri.split(".").pop() || "jpg";
+    const fileName = `place-${Date.now()}-${Math.round(Math.random() * 1e9)}.${extension}`;
+    const dest = `${imagesDir}/${fileName}`;
+    await FileSystem.copyAsync({ from: uri, to: dest });
+    return dest;
+  };
 
   useEffect(() => {
     const lat = params.lat ? Number(params.lat) : null;
@@ -42,6 +68,15 @@ export default function AddPlaceScreen() {
       void updatePickedLocation(lat, lng);
     }
   }, [params.lat, params.lng]);
+
+  useEffect(() => {
+    if (typeof params.imageUri === "string" && params.imageUri) {
+      setImageUri(params.imageUri);
+    }
+    if (typeof params.title === "string" && params.title) {
+      setTitle(params.title);
+    }
+  }, [params.imageUri, params.title]);
 
   const updatePickedLocation = async (lat: number, lng: number) => {
     const address = await reverseGeocode(lat, lng);
@@ -60,28 +95,31 @@ export default function AddPlaceScreen() {
       allowsEditing: true,
     });
     if (!result.canceled) {
-      setImageUri(result.assets[0]?.uri ?? null);
+      const pickedUri = result.assets[0]?.uri;
+      if (pickedUri) {
+        const storedUri = await persistImageUri(pickedUri);
+        setImageUri(storedUri);
+      }
     }
   };
 
-  const handleOpenCamera = async () => {
+  const handleTakePhoto = async () => {
     const granted = await requestCameraPermission();
     if (!granted) {
       Alert.alert("Permission required", "Camera access is needed.");
       return;
     }
-    setShowCamera(true);
-  };
-
-  const handleCapture = async () => {
-    if (!cameraRef.current) {
-      return;
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.7,
+      allowsEditing: true,
+    });
+    if (!result.canceled) {
+      const pickedUri = result.assets[0]?.uri;
+      if (pickedUri) {
+        const storedUri = await persistImageUri(pickedUri);
+        setImageUri(storedUri);
+      }
     }
-    const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
-    if (photo?.uri) {
-      setImageUri(photo.uri);
-    }
-    setShowCamera(false);
   };
 
   const handleGetLocation = async () => {
@@ -97,7 +135,11 @@ export default function AddPlaceScreen() {
   const handlePickOnMap = () => {
     router.push({
       pathname: "/(lab05)/(places)/map",
-      params: { mode: "pick" },
+      params: {
+        mode: "pick",
+        imageUri: imageUri ?? undefined,
+        title: title.trim() ? title : undefined,
+      },
     });
   };
 
@@ -123,90 +165,113 @@ export default function AddPlaceScreen() {
       address: pickedLocation.address,
     });
 
-    await scheduleNotificationAsync("Place saved!", "Your place was added.");
+    await scheduleNotificationAsync(
+      "Places added successfully",
+      "The place has been added to your favourites list!"
+    );
     Alert.alert("Saved", "Place added successfully.");
     router.back();
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.label}>Place name</Text>
-      <TextInput
-        placeholder="Enter place name"
-        value={title}
-        onChangeText={setTitle}
-        style={styles.input}
-      />
+    <View style={styles.screen}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+        <Text style={styles.label}>Title</Text>
+        <TextInput
+          placeholder="Enter place name"
+          value={title}
+          onChangeText={setTitle}
+          style={styles.input}
+        />
 
-      <Text style={styles.label}>Photo</Text>
-      <View style={styles.previewBox}>
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.previewImage} />
-        ) : (
-          <Text style={styles.previewText}>No photo selected</Text>
-        )}
-      </View>
-      <View style={styles.row}>
-        <Pressable style={styles.outlineButton} onPress={handlePickImage}>
-          <Text style={styles.outlineButtonText}>Choose Photo</Text>
-        </Pressable>
-        <Pressable style={styles.outlineButton} onPress={handleOpenCamera}>
-          <Text style={styles.outlineButtonText}>Take Photo</Text>
-        </Pressable>
-      </View>
-
-      {showCamera && (
-        <View style={styles.cameraContainer}>
-          <Camera
-            ref={(ref) => {
-              cameraRef.current = ref;
-            }}
-            style={styles.camera}
-            type={CameraType.back}
-          />
-          <View style={styles.cameraActions}>
-            <Pressable style={styles.outlineButton} onPress={handleCapture}>
-              <Text style={styles.outlineButtonText}>Capture</Text>
-            </Pressable>
-            <Pressable
-              style={styles.outlineButton}
-              onPress={() => setShowCamera(false)}
-            >
-              <Text style={styles.outlineButtonText}>Cancel</Text>
-            </Pressable>
-          </View>
+        <View style={styles.previewBox}>
+          {imageUri ? (
+            <ExpoImage
+              source={{ uri: imageUri }}
+              style={styles.previewImage}
+              contentFit="cover"
+            />
+          ) : (
+            <Text style={styles.previewText}>No image taken yet.</Text>
+          )}
         </View>
-      )}
+        <View style={styles.row}>
+          <Pressable style={styles.outlineButton} onPress={handlePickImage}>
+            <View style={styles.buttonContent}>
+              <Ionicons name="image" size={16} color="#2563EB" />
+              <Text style={styles.outlineButtonText}>Pick Image</Text>
+            </View>
+          </Pressable>
+          <Pressable style={styles.outlineButton} onPress={handleTakePhoto}>
+            <View style={styles.buttonContent}>
+              <Ionicons name="camera" size={16} color="#2563EB" />
+              <Text style={styles.outlineButtonText}>Take Image</Text>
+            </View>
+          </Pressable>
+        </View>
 
-      <Text style={styles.label}>Location</Text>
-      <View style={styles.previewBox}>
-        {pickedLocation ? (
-          <Text style={styles.previewText}>{pickedLocation.address}</Text>
-        ) : (
-          <Text style={styles.previewText}>No location selected</Text>
-        )}
-      </View>
-      <View style={styles.row}>
-        <Pressable style={styles.outlineButton} onPress={handleGetLocation}>
-          <Text style={styles.outlineButtonText}>Use Current</Text>
-        </Pressable>
-        <Pressable style={styles.outlineButton} onPress={handlePickOnMap}>
-          <Text style={styles.outlineButtonText}>Pick on Map</Text>
-        </Pressable>
-      </View>
+        <View style={styles.previewBox}>
+          {pickedLocation ? (
+            <MapView
+              style={styles.mapPreview}
+              provider={PROVIDER_GOOGLE}
+              region={{
+                latitude: pickedLocation.lat,
+                longitude: pickedLocation.lng,
+                latitudeDelta: 0.012,
+                longitudeDelta: 0.012,
+              }}
+              scrollEnabled={false}
+              zoomEnabled={false}
+            >
+              <Marker
+                coordinate={{
+                  latitude: pickedLocation.lat,
+                  longitude: pickedLocation.lng,
+                }}
+              />
+            </MapView>
+          ) : (
+            <Text style={styles.previewText}>No location picked yet.</Text>
+          )}
+        </View>
+        <View style={styles.row}>
+          <Pressable style={styles.outlineButton} onPress={handleGetLocation}>
+            <View style={styles.buttonContent}>
+              <Ionicons name="locate" size={16} color="#2563EB" />
+              <Text style={styles.outlineButtonText}>Locate User</Text>
+            </View>
+          </Pressable>
+          <Pressable style={styles.outlineButton} onPress={handlePickOnMap}>
+            <View style={styles.buttonContent}>
+              <Ionicons name="map" size={16} color="#2563EB" />
+              <Text style={styles.outlineButtonText}>Pick on Map</Text>
+            </View>
+          </Pressable>
+        </View>
 
-      <Pressable style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Save Place</Text>
-      </Pressable>
-    </ScrollView>
+        <Pressable style={styles.saveButton} onPress={handleSave}>
+          <Text style={styles.saveButtonText}>Add Place</Text>
+        </Pressable>
+      </ScrollView>
+      <BottomTabs active="places" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
   container: {
     padding: 16,
     gap: 12,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF",
+    paddingBottom: 24,
+  },
+  scroll: {
+    flex: 1,
   },
   label: {
     fontSize: 14,
@@ -214,18 +279,18 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    borderRadius: 4,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#D1D5DB",
   },
   previewBox: {
     minHeight: 120,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#D1D5DB",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -234,10 +299,13 @@ const styles = StyleSheet.create({
   previewImage: {
     width: "100%",
     height: 160,
-    borderRadius: 8,
+  },
+  mapPreview: {
+    width: "100%",
+    height: 160,
   },
   previewText: {
-    color: "#64748B",
+    color: "#6B7280",
     textAlign: "center",
   },
   row: {
@@ -246,36 +314,26 @@ const styles = StyleSheet.create({
   },
   outlineButton: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: "#1D4ED8",
-    paddingVertical: 10,
+    borderColor: "#2563EB",
+    paddingVertical: 8,
     alignItems: "center",
   },
   outlineButtonText: {
-    color: "#1D4ED8",
+    color: "#2563EB",
     fontWeight: "600",
   },
-  cameraContainer: {
-    backgroundColor: "#0F172A",
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  camera: {
-    width: "100%",
-    height: 240,
-  },
-  cameraActions: {
+  buttonContent: {
     flexDirection: "row",
-    gap: 12,
-    padding: 12,
-    backgroundColor: "#0F172A",
+    alignItems: "center",
+    gap: 6,
   },
   saveButton: {
     marginTop: 8,
-    backgroundColor: "#16A34A",
-    paddingVertical: 14,
-    borderRadius: 10,
+    backgroundColor: "#2563EB",
+    paddingVertical: 12,
+    borderRadius: 6,
     alignItems: "center",
   },
   saveButtonText: {
