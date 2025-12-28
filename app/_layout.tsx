@@ -9,10 +9,11 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <AuthProvider>
+      <AuthProvider enableRedirect={false}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(main)" />
+          <Stack.Screen name="(lab04)" />
         </Stack>
         <StatusBar style="auto" />
       </AuthProvider>

@@ -35,6 +35,12 @@ export default function Index() {
                     <Text style={styles.btnText}>LAB03 Task 2 (Local Storage)</Text>
                 </TouchableOpacity>
             </Link>
+
+            <Link href="/(lab04)/(auth)/login" asChild>
+                <TouchableOpacity style={styles.btn}>
+                    <Text style={styles.btnText}>LAB04 (Communicating with Servers)</Text>
+                </TouchableOpacity>
+            </Link>
         </View>
     );
 }
