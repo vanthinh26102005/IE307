@@ -9,7 +9,18 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyBSbhPQVsNTDm-XF0ImtOkoSPjZiczKhaA"
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow access to camera for taking place photos and recording video.",
+        "NSMicrophoneUsageDescription": "Allow access to microphone for recording video audio.",
+        "NSPhotoLibraryUsageDescription": "Allow access to photo library to pick and save media.",
+        "NSPhotoLibraryAddUsageDescription": "Allow saving media to your photo library.",
+        "NSLocationWhenInUseUsageDescription": "Allow access to location to tag places on the map."
+      },
+      "bundleIdentifier": "com.anonymous.BTTH1-App"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +30,22 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBSbhPQVsNTDm-XF0ImtOkoSPjZiczKhaA"
+        }
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
