@@ -37,24 +37,56 @@ export default function MapScreen() {
 
   const [selected, setSelected] = useState(initialCoords);
   const [selectedAddress, setSelectedAddress] = useState("");
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const markerRef = useRef<Marker | null>(null);
 
   useEffect(() => {
     let isActive = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const loadAddress = async () => {
       if (!selected) {
-        if (isActive) setSelectedAddress("");
+        if (isActive) {
+          setSelectedAddress("");
+          setIsLoadingAddress(false);
+        }
         return;
       }
-      const address = await reverseGeocode(selected.lat, selected.lng);
+
+      // Set loading state and show coordinates immediately
       if (isActive) {
-        const fallback = `${selected.lat.toFixed(5)}, ${selected.lng.toFixed(5)}`;
-        setSelectedAddress(address || fallback);
+        setIsLoadingAddress(true);
+        const fallback = `${selected.lat.toFixed(6)}, ${selected.lng.toFixed(6)}`;
+        setSelectedAddress(fallback);
+        timeoutId = setTimeout(() => {
+          if (isActive) {
+            setIsLoadingAddress(false);
+          }
+        }, 2000);
+      }
+
+      try {
+        const address = await reverseGeocode(selected.lat, selected.lng);
+        if (isActive) {
+          setSelectedAddress(address || `${selected.lat.toFixed(6)}, ${selected.lng.toFixed(6)}`);
+          setIsLoadingAddress(false);
+        }
+      } catch (error) {
+        if (isActive) {
+          setSelectedAddress(`${selected.lat.toFixed(6)}, ${selected.lng.toFixed(6)}`);
+          setIsLoadingAddress(false);
+        }
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
       }
     };
     void loadAddress();
     return () => {
       isActive = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [selected]);
 
@@ -64,9 +96,9 @@ export default function MapScreen() {
     }
     const timer = setTimeout(() => {
       markerRef.current?.showCallout();
-    }, 50);
+    }, 100);
     return () => clearTimeout(timer);
-  }, [isPicking, selected, selectedAddress]);
+  }, [isPicking, selected]);
 
   const handleSelect = (event: MapPressEvent) => {
     if (!isPicking) {
@@ -131,9 +163,15 @@ export default function MapScreen() {
           >
             <Callout>
               <View style={styles.callout}>
-                <Text style={styles.calloutText}>
-                  {selectedAddress || "Loading address..."}
-                </Text>
+                {isLoadingAddress && selectedAddress.includes(",") && selectedAddress.split(",").length === 2 ? (
+                  <>
+                    <Text style={styles.calloutTitle}>Selected Location</Text>
+                    <Text style={styles.calloutCoords}>{selectedAddress}</Text>
+                    <Text style={styles.calloutLoading}>Loading address...</Text>
+                  </>
+                ) : (
+                  <Text style={styles.calloutText}>{selectedAddress}</Text>
+                )}
               </View>
             </Callout>
           </Marker>
@@ -163,11 +201,30 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   callout: {
-    maxWidth: 220,
-    paddingVertical: 4,
+    maxWidth: 250,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  calloutTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#0F172A",
+    marginBottom: 4,
+  },
+  calloutCoords: {
+    fontSize: 11,
+    color: "#64748B",
+    marginBottom: 4,
+    fontFamily: "monospace",
+  },
+  calloutLoading: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontStyle: "italic",
   },
   calloutText: {
     fontSize: 12,
     color: "#0F172A",
+    lineHeight: 16,
   },
 });
