@@ -1,7 +1,13 @@
 import { Link } from "expo-router";
+import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { requestNotificationPermission } from "@/utils/notifications";
 
 export default function Lab05Index() {
+  useEffect(() => {
+    void requestNotificationPermission();
+  }, []);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>LAB05 - Native Device Features</Text>

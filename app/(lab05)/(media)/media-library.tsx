@@ -1,3 +1,4 @@
+import * as MediaLibrary from "expo-media-library";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -9,7 +10,6 @@ import {
   Text,
   View,
 } from "react-native";
-import * as MediaLibrary from "expo-media-library";
 import { requestMediaLibraryPermission } from "@/utils/permissions";
 import BottomTabs from "@/components/lab05/BottomTabs";
 import { Image as ExpoImage } from "expo-image";

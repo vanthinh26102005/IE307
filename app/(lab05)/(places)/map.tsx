@@ -1,8 +1,8 @@
+import MapView, { Callout, Marker, MapPressEvent, PROVIDER_GOOGLE } from "react-native-maps";
 import { useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
-import MapView, { Marker, MapPressEvent, PROVIDER_GOOGLE } from "react-native-maps";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import BottomTabs from "@/components/lab05/BottomTabs";
 import { Ionicons } from "@expo/vector-icons";
 import { reverseGeocode } from "@/utils/location";
@@ -17,7 +17,13 @@ const DEFAULT_REGION = {
 export default function MapScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const params = useLocalSearchParams<{ lat?: string; lng?: string; mode?: string }>();
+  const params = useLocalSearchParams<{
+    lat?: string;
+    lng?: string;
+    mode?: string;
+    imageUri?: string;
+    title?: string;
+  }>();
   const isPicking = params.mode === "pick";
 
   const initialCoords = useMemo(() => {
@@ -31,6 +37,7 @@ export default function MapScreen() {
 
   const [selected, setSelected] = useState(initialCoords);
   const [selectedAddress, setSelectedAddress] = useState("");
+  const markerRef = useRef<Marker | null>(null);
 
   useEffect(() => {
     let isActive = true;
@@ -51,6 +58,16 @@ export default function MapScreen() {
     };
   }, [selected]);
 
+  useEffect(() => {
+    if (!isPicking || !selected) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      markerRef.current?.showCallout();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isPicking, selected, selectedAddress]);
+
   const handleSelect = (event: MapPressEvent) => {
     if (!isPicking) {
       return;
@@ -68,9 +85,14 @@ export default function MapScreen() {
     }
     router.navigate({
       pathname: "/(lab05)/(places)/add-place",
-      params: { lat: String(selected.lat), lng: String(selected.lng) },
+      params: {
+        lat: String(selected.lat),
+        lng: String(selected.lng),
+        imageUri: typeof params.imageUri === "string" ? params.imageUri : undefined,
+        title: typeof params.title === "string" ? params.title : undefined,
+      },
     });
-  }, [router, selected]);
+  }, [params.imageUri, params.title, router, selected]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -104,9 +126,17 @@ export default function MapScreen() {
       >
         {selected && (
           <Marker
+            ref={markerRef}
             coordinate={{ latitude: selected.lat, longitude: selected.lng }}
-            title={selectedAddress || "Selected location"}
-          />
+          >
+            <Callout>
+              <View style={styles.callout}>
+                <Text style={styles.calloutText}>
+                  {selectedAddress || "Loading address..."}
+                </Text>
+              </View>
+            </Callout>
+          </Marker>
         )}
       </MapView>
       <View style={styles.tabs}>
@@ -131,5 +161,13 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     marginRight: 12,
+  },
+  callout: {
+    maxWidth: 220,
+    paddingVertical: 4,
+  },
+  calloutText: {
+    fontSize: 12,
+    color: "#0F172A",
   },
 });

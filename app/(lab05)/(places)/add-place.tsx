@@ -170,7 +170,7 @@ export default function AddPlaceScreen() {
       "The place has been added to your favourites list!"
     );
     Alert.alert("Saved", "Place added successfully.");
-    router.back();
+    router.replace("/(lab05)/(places)/places-list");
   };
 
   return (

@@ -18,3 +18,8 @@ export async function scheduleNotificationAsync(title: string, body: string) {
     trigger: null,
   });
 }
+
+export async function requestNotificationPermission() {
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status === "granted";
+}
